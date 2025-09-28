@@ -1,0 +1,95 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flood Evacuation Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        #map { height: 500px; width: 100%; }
+        .card { background-color: #f9fafb; padding: 1.5rem; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold text-center mb-6">Flood Evacuation Dashboard</h1>
+        {% if plan %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Evacuation Summary -->
+            <div class="card">
+                <h2 class="text-xl font-semibold mb-2">Evacuation Summary</h2>
+                <p><strong>Area:</strong> {{ plan.area_name }}</p>
+                <p><strong>Timestamp:</strong> {{ plan.timestamp }}</p>
+                <p><strong>Total Population:</strong> {{ plan.evacuation_plan.total_population | int }} people</p>
+                <p><strong>Vulnerable Clusters:</strong> {{ plan.evacuation_plan.vulnerable_clusters }}</p>
+            </div>
+            <!-- Route Optimization -->
+            <div class="card">
+                <h2 class="text-xl font-semibold mb-2">Route Optimization</h2>
+                <p><strong>Total Clusters:</strong> {{ plan.route_optimization.total_clusters }}</p>
+                <p><strong>Average Distance:</strong> {{ plan.route_optimization.optimized_routes | map(attribute='distance_km') | select('float') | list | average | round(1) }} km</p>
+                <p><strong>Estimated Total Time:</strong> {{ plan.route_optimization.optimized_routes | map(attribute='estimated_time_hours') | select('float') | list | sum | round(1) }} hours</p>
+            </div>
+            <!-- Shelter Assignment -->
+            <div class="card">
+                <h2 class="text-xl font-semibold mb-2">Shelter Assignment</h2>
+                <p><strong>Total Shelters Used:</strong> {{ plan.shelter_assignment.shelter_assignments | map(attribute='shelter') | unique | list | length }}</p>
+                <p><strong>Transport Vehicles:</strong> {{ plan.shelter_assignment.shelter_assignments | selectattr('transport', 'ne', 'walking/foot') | list | length }}</p>
+                <table class="w-full mt-2 border">
+                    <tr class="bg-gray-200">
+                        <th class="p-2">Cluster</th>
+                        <th class="p-2">Population</th>
+                        <th class="p-2">Shelter</th>
+                        <th class="p-2">Transport</th>
+                    </tr>
+                    {% for key, assignment in plan.shelter_assignment.shelter_assignments.items() %}
+                    <tr>
+                        <td class="p-2 border">{{ key }}</td>
+                        <td class="p-2 border">{{ assignment.cluster_population }}</td>
+                        <td class="p-2 border">{{ assignment.shelter }}</td>
+                        <td class="p-2 border">{{ assignment.transport }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+            <!-- Email Notifications -->
+            <div class="card">
+                <h2 class="text-xl font-semibold mb-2">Email Notifications</h2>
+                <table class="w-full border">
+                    <tr class="bg-gray-200">
+                        <th class="p-2">Recipient</th>
+                        <th class="p-2">Status</th>
+                        <th class="p-2">Timestamp</th>
+                        <th class="p-2">Agenda</th>
+                    </tr>
+                    {% for contact, status in email_statuses.items() %}
+                    <tr>
+                        <td class="p-2 border">{{ status.recipient }}</td>
+                        <td class="p-2 border">{{ status.status }}</td>
+                        <td class="p-2 border">{{ status.timestamp }}</td>
+                        <td class="p-2 border">{{ status.agenda }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+            <!-- GIS Map -->
+            <div class="card col-span-2">
+                <h2 class="text-xl font-semibold mb-2">Evacuation Routes Map</h2>
+                <iframe src="{{ plan.gis_map }}" style="width: 100%; height: 500px; border: none;"></iframe>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-center text-gray-600">No evacuation plans available. Run the evacuation tool to generate a plan.</p>
+        {% endif %}
+        <div class="text-center mt-4">
+            <form action="/run_evacuation" method="POST">
+                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    Run Evacuation Planning
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
+    
